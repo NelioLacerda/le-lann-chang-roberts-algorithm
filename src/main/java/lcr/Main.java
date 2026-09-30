@@ -2,7 +2,7 @@ package lcr;
 
 public class Main {
     public static void main(String[] args) throws InterruptedException {
-        int[] uids = {1, 4, 2, 5, 3};
+        int[] uids = {3, 7, 2, 5};
         Node[] nodes = new Node[uids.length];
         for (int i = 0; i < uids.length; i++) {
             nodes[i] = new Node(uids[i]);
