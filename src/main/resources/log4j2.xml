@@ -5,6 +5,14 @@
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [node-%X{nodeId}] %-5level %msg%n"/>
         </Console>
 
+        <Console name="ObserverConsole" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [observer] %-5level %msg%n"/>
+        </Console>
+
+        <File name="ObserverFile" fileName="logs/observer.log" append="false">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [observer] %-5level %msg%n"/>
+        </File>
+
         <Routing name="PerNode">
             <Routes pattern="$${ctx:nodeId}">
                 <Route>
@@ -17,6 +25,10 @@
     </Appenders>
 
     <Loggers>
+        <Logger name="lcr.Observer" level="debug" additivity="false">
+            <AppenderRef ref="ObserverConsole"/>
+            <AppenderRef ref="ObserverFile"/>
+        </Logger>
         <Root level="debug">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="PerNode"/>
