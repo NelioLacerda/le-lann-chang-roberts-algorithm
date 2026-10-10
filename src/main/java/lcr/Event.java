@@ -7,15 +7,22 @@ public class Event {
     private final int nodeIdToSend;
     private final Type msgType;
     private final long trueSeq;
+    private final long msgId;
+    private final long localSeq;
 
-    //Event from $peerId$ to $nodeId$ pr vice-versa
-    public Event(int nodeId, Kind kind, int peerId, int nodeIdToSend, Type msgType, long trueSeq) {
+    // Event from $peerId$ to $nodeId$ or vice-versa.
+    // trueSeq: contador global (só para ground truth, nenhum nó o conheceria).
+    // localSeq: contador local ao nó que gerou o evento (ordem de programa do nó).
+    public Event(int nodeId, Kind kind, int peerId, int nodeIdToSend, Type msgType,
+                 long trueSeq, long msgId, long localSeq) {
         this.nodeId = nodeId;
         this.kind = kind;
         this.peerId = peerId;
         this.nodeIdToSend = nodeIdToSend;
         this.msgType = msgType;
         this.trueSeq = trueSeq;
+        this.msgId = msgId;
+        this.localSeq = localSeq;
     }
 
     public int getNodeId() {
@@ -42,9 +49,17 @@ public class Event {
         return trueSeq;
     }
 
+    public long getMsgId() {
+        return msgId;
+    }
+
+    public long getLocalSeq() {
+        return localSeq;
+    }
+
     @Override
     public String toString() {
-        return String.format("Event{node=%d, kind=%s, peerId=%d, nodeIdToSend=%d, type=%s, trueSeq=%d}",
-                nodeId, kind, peerId, nodeIdToSend, msgType, trueSeq);
+        return String.format("Event{node=%d, kind=%s, peerId=%d, nodeIdToSend=%d, type=%s, msgId=%d, trueSeq=%d, localSeq=%d}",
+                nodeId, kind, peerId, nodeIdToSend, msgType, msgId, trueSeq, localSeq);
     }
 }

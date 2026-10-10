@@ -1,17 +1,20 @@
 package lcr;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
         long seed = args.length > 0 ? Long.parseLong(args[0]) : System.nanoTime();
         int maxDelayMs = args.length > 1 ? Integer.parseInt(args[1]) : 50;
         System.out.println("seed = " + seed + ", maxDelayMs = " + maxDelayMs);
 
-        int[] uids = {3, 7, 6};
+        int[] uids = {3, 7};
         Observer observer = new Observer();
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(uids.length);
 
@@ -43,5 +46,12 @@ public class Main {
         observer.getTrace().forEach(System.out::println);
         System.out.println("--- ground truth (por trueSeq) ---");
         observer.getTrace().stream().sorted(Comparator.comparingLong(Event::getTrueSeq)).forEach(System.out::println);
+
+        // A seed vai no nome para os ficheiros não serem sobrescritos a cada execução
+        // (a seed sozinha não torna a execução reprodutível, por causa do escalonamento das threads).
+        Files.createDirectories(Paths.get("runs"));
+        observer.writeCsv(Paths.get("runs/observed-" + seed + ".csv"), observer.getTrace());
+        observer.writeCsv(Paths.get("runs/truth-" + seed + ".csv"),
+                observer.getTrace().stream().sorted(Comparator.comparingLong(Event::getTrueSeq)).collect(java.util.stream.Collectors.toList()));
     }
 }

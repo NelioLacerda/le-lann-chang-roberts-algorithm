@@ -6,7 +6,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 
-public class ReporterSend implements Reporter{
+public class ReporterSend implements Reporter {
     private final Observer observer;
     private final ScheduledExecutorService scheduler;
     private final Random random;
@@ -19,12 +19,28 @@ public class ReporterSend implements Reporter{
         this.maxDelayMsg = maxDelayMsg;
     }
 
+    @Override
     public void report(Event event) {
+        // O primeiro SEND observado é reportado de imediato e só uma vez.
+        // (Antes, o claimFirst() também era chamado em drawDelay(), o que fazia
+        // com que o primeiro SEND fosse inserido duas vezes no trace.)
         if (event.getKind() == Kind.SEND && observer.claimFirst()) {
             observer.putFirst(event);
             return;
         }
+        long delayMs = drawDelay(event);
+        scheduler.schedule(() -> {
+            try {
+                observer.awaitFirst();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            observer.put(event);
+        }, delayMs, MILLISECONDS);
+    }
 
+    private long drawDelay(Event event) {
         long delayMs;
         switch (event.getKind()) {
             case SEND:
@@ -39,14 +55,6 @@ public class ReporterSend implements Reporter{
             default:
                 delayMs = maxDelayMsg / 10 + random.nextInt(maxDelayMsg / 10 + 1);
         }
-        scheduler.schedule(() -> {
-            try {
-                observer.awaitFirst();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-            observer.put(event);
-        }, delayMs, MILLISECONDS);
+        return delayMs;
     }
 }
