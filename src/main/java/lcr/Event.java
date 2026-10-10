@@ -3,18 +3,17 @@ package lcr;
 public class Event {
     private final int nodeId;
     private final Kind kind;
-    private final int peer;
-    private final long msgId;
-    private final int id;
+    private final int peerId;
+    private final int nodeIdToSend;
     private final Type msgType;
     private final long trueSeq;
 
-    public Event(int nodeId, Kind kind, int peer, long msgId, int id, Type msgType, long trueSeq) {
+    //Event from $peerId$ to $nodeId$ pr vice-versa
+    public Event(int nodeId, Kind kind, int peerId, int nodeIdToSend, Type msgType, long trueSeq) {
         this.nodeId = nodeId;
         this.kind = kind;
-        this.peer = peer;
-        this.msgId = msgId;
-        this.id = id;
+        this.peerId = peerId;
+        this.nodeIdToSend = nodeIdToSend;
         this.msgType = msgType;
         this.trueSeq = trueSeq;
     }
@@ -27,16 +26,12 @@ public class Event {
         return kind;
     }
 
-    public int getPeer() {
-        return peer;
+    public int getPeerId() {
+        return peerId;
     }
 
-    public long getMsgId() {
-        return msgId;
-    }
-
-    public int getId() {
-        return id;
+    public int getNodeIdToSend() {
+        return nodeIdToSend;
     }
 
     public Type getMsgType() {
@@ -49,7 +44,7 @@ public class Event {
 
     @Override
     public String toString() {
-        return String.format("Event{node=%d, kind=%s, peer=%d, msgId=%d, id=%d, type=%s, trueSeq=%d}",
-                nodeId, kind, peer, msgId, id, msgType, trueSeq);
+        return String.format("Event{node=%d, kind=%s, peerId=%d, nodeIdToSend=%d, type=%s, trueSeq=%d}",
+                nodeId, kind, peerId, nodeIdToSend, msgType, trueSeq);
     }
 }

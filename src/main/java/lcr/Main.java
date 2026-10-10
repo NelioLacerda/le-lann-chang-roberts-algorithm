@@ -11,13 +11,13 @@ public class Main {
         int maxDelayMs = args.length > 1 ? Integer.parseInt(args[1]) : 50;
         System.out.println("seed = " + seed + ", maxDelayMs = " + maxDelayMs);
 
-        int[] uids = {3, 7};
+        int[] uids = {3, 7, 6};
         Observer observer = new Observer();
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(uids.length);
 
         Node[] nodes = new Node[uids.length];
         for (int i = 0; i < uids.length; i++) {
-            Reporter reporter = new Reporter(observer, scheduler, seed + i, maxDelayMs);
+            Reporter reporter = new ReporterSend(observer, scheduler, seed + i, maxDelayMs);
             nodes[i] = new Node(uids[i], reporter);
         }
 
@@ -43,9 +43,5 @@ public class Main {
         observer.getTrace().forEach(System.out::println);
         System.out.println("--- ground truth (por trueSeq) ---");
         observer.getTrace().stream().sorted(Comparator.comparingLong(Event::getTrueSeq)).forEach(System.out::println);
-        System.out.println("RECV before SEND: " + observer.recvBeforeSend());
-        System.out.println("DISCARD before RECV: " + observer.discardBeforeRecv());
-        System.out.println("ELECTED SEND before BECOME_LEADER: " + observer.electedSendBeforeLeader());
-
     }
 }

@@ -1,28 +1,22 @@
 package lcr;
 
 public class Message {
-    private final int from;
-    private final int senderId;
-    private final long msgId;
+    private final int fromId;
+    private final int nodeIdToSend;
     private final Type msgType;
 
-    public Message(int from, int senderId, long msgId, Type msgType) {
-        this.from = from;
-        this.senderId = senderId;
-        this.msgId = msgId;
+    public Message(int fromId, int nodeIdToSend, Type msgType) {
+        this.fromId = fromId;
+        this.nodeIdToSend = nodeIdToSend;
         this.msgType = msgType;
     }
 
-    public int getFrom() {
-        return from;
+    public int getFromId() {
+        return fromId;
     }
 
-    public int getSenderId() {
-        return senderId;
-    }
-
-    public long getMsgId() {
-        return msgId;
+    public int getNodeIdToSend() {
+        return nodeIdToSend;
     }
 
     public Type getMsgType() {
