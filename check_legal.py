@@ -17,6 +17,11 @@ the transitive closure of two generating relations:
   (b) message order: SEND(m) before RECV(m).
 It is enough to check the generating relations: the transitive closure follows.
 
+Local state events (DISCARD, MAX_ID_UPDATE, LEADER) take part in the history like any
+other event. On top of program order, DISCARD and MAX_ID_UPDATE are tied to the RECV that
+caused them (same msgId), and MAX_ID_UPDATE must raise the node's maxId (it starts as the
+node's own id, which is the value of the node column).
+
 Exit code: 0 = legal, 1 = illegal, 2 = selftest failed.
 """
 import argparse
@@ -60,9 +65,9 @@ def check(history, reference=None):
         else:
             seen[k] = e["idx"]
 
-    per_node = defaultdict(list) #tipo de lista onde se não existir uma chave, ela é criada automaticamente
+    per_node = defaultdict(list)
     for e in evs:
-        per_node[e["node"]].append(e) #separa os eventos por nó
+        per_node[e["node"]].append(e)
 
     for node, event_list in sorted(per_node.items()):
         # 2. localSeq contiguous from 0 (a gap means a missing event).
@@ -124,7 +129,31 @@ def check(history, reference=None):
         elif r["idx"] > d["idx"]:
             err("DISCARD", f"DISCARD of msgId {d['msg']} (pos {d['idx']}) is before its RECV (pos {r['idx']})")
 
-    # 7. Optional: the history must be a permutation of the reference history.
+    # 7. MAX_ID_UPDATE: a node only raises its maxId upon receiving, from its predecessor,
+    #    a message carrying a larger id. The new maxId (nodeIdToSend) must match the id in
+    #    the RECV that caused it, the RECV must come first, and maxId must strictly increase
+    #    (it starts as the node's own id).
+    for node, event_list in sorted(per_node.items()):
+        cur = node
+        updates = sorted((x for x in event_list if x["kind"] == "MAX_ID_UPDATE"), key=lambda x: x["local"])
+        for e in updates:
+            r = recvs.get(e["msg"])
+            if r is None or r["node"] != node:
+                err("MAX-ID", f"node {node}: MAX_ID_UPDATE to {e['to_send']} (pos {e['idx']}) "
+                              f"has no RECV of msgId {e['msg']} on this node")
+            else:
+                if r["idx"] > e["idx"]:
+                    err("MAX-ID", f"node {node}: MAX_ID_UPDATE to {e['to_send']} (pos {e['idx']}) "
+                                  f"is before its RECV (pos {r['idx']})")
+                if r["to_send"] != e["to_send"]:
+                    err("MAX-ID", f"node {node}: MAX_ID_UPDATE to {e['to_send']} (pos {e['idx']}) "
+                                  f"does not match the id {r['to_send']} carried by msgId {e['msg']}")
+            if e["to_send"] <= cur:
+                err("MAX-ID", f"node {node}: maxId must increase, but went {cur} -> {e['to_send']} "
+                              f"(pos {e['idx']})")
+            cur = max(cur, e["to_send"])
+
+    # 8. Optional: the history must be a permutation of the reference history.
     if reference is not None:
         def sig(l):
             return Counter((e["node"], e["local"], e["kind"], e["msg"]) for e in l)
@@ -228,6 +257,23 @@ def selftest(base):
         expect("DISCARD before its RECV", h, "DISCARD")
     else:
         skip("DISCARD before its RECV")
+
+    # M5b: MAX_ID_UPDATE before the RECV that caused it
+    ms = [(i, e) for i, e in enumerate(base) if e["kind"] == "MAX_ID_UPDATE" and e["msg"] in recvs]
+    if ms:
+        i, e = rnd.choice(ms)
+        h = list(base)
+        j = recvs[e["msg"]]
+        h[i], h[j] = h[j], h[i]
+        expect("MAX_ID_UPDATE before its RECV", h, "MAX-ID")
+
+        # M5c: MAX_ID_UPDATE that does not raise maxId (new value = the node's own id)
+        i, e = rnd.choice(ms)
+        h = list(base)
+        h[i] = dict(e, to_send=e["node"])
+        expect("MAX_ID_UPDATE that does not raise maxId", h, "MAX-ID")
+    else:
+        skip("MAX_ID_UPDATE mutations")
 
     # M6: last event removed (only visible with a reference)
     expect("last event removed (with --reference)", base[:-1], "NOT-A-PERMUTATION", reference=base)

@@ -85,7 +85,10 @@ public class Node implements Runnable {
                         long seq = SEQ.getAndIncrement();
                         log.debug("State: maxId {} -> {}, seq = {}", maxId, nodeId, seq);
                         maxId = nodeId;
-                        reporter.report(ev(Kind.MAX_ID_UPDATE, myId, myId, Type.CHANGE_MAX_ID, seq, message.getMsgId()));
+                        // Evento de estado: nodeIdToSend = novo maxId; peerId e msgId = os da
+                        // mensagem recebida que o causou (como no DISCARD).
+                        reporter.report(ev(Kind.MAX_ID_UPDATE, message.getFromId(), nodeId,
+                                message.getMsgType(), seq, message.getMsgId()));
                         sendMessage(nodeId, Type.ELECTION);
                     } else {
                         long seq = SEQ.getAndIncrement();
