@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class LegalizerFirstAkg {
@@ -47,7 +48,7 @@ public class LegalizerFirstAkg {
             }
 
             if (e.kind == Kind.RECV) p.add(e);
-            else if (e.localSeq != innerN.getOrDefault(e.node, 0L)) {
+            else if (e.localSeq == innerN.getOrDefault(e.node, 0L)) {
                 pi.add(e);
                 innerPi.add(e.key());
                 innerN.put(e.node, e.localSeq + 1);
@@ -67,11 +68,8 @@ public class LegalizerFirstAkg {
                 innerPi.add(env.key());
                 innerN.put(env.node, env.localSeq + 1);
             }
-
-            return pi;
         }
-
-        return events;
+        return pi;
     }
 
     private static boolean canAppend(Event e, Map<Integer, Long> innerN, Set<Key> innerPi, Map<Integer, Key> sendOf) {
@@ -202,6 +200,18 @@ public class LegalizerFirstAkg {
         Key(int node, long localSeq) {
             this.node = node;
             this.localSeq = localSeq;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            Key key = (Key) o;
+            return node == key.node && localSeq == key.localSeq;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(node, localSeq);
         }
     }
 }

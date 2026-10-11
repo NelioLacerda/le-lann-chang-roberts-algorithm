@@ -14,7 +14,7 @@ public class Main {
         int maxDelayMs = args.length > 1 ? Integer.parseInt(args[1]) : 50;
         System.out.println("seed = " + seed + ", maxDelayMs = " + maxDelayMs);
 
-        int[] uids = {3, 7};
+        int[] uids = {3, 7, 4, 9, 2, 1, 5, 8, 6};
         Observer observer = new Observer();
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(uids.length);
 
