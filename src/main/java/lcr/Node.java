@@ -20,8 +20,6 @@ public class Node implements Runnable {
     private Node successor;
 
     // Ordem de programa deste nó. Só a thread do próprio nó lhe mexe
-    // (sendMessage e receiveMessage são chamados a partir de run()),
-    // por isso não precisa de sincronização.
     private long localSeq = 0;
 
     public Node(int nodeId, Reporter reporter) {
@@ -36,8 +34,6 @@ public class Node implements Runnable {
         this.successor = successor;
     }
 
-    // Cria um evento deste nó, atribuindo-lhe o próximo localSeq.
-    // Tem de ser chamado exatamente na ordem em que o nó executa os eventos.
     private Event ev(Kind kind, int peerId, int nodeIdToSend, Type type, long trueSeq, long msgId) {
         return new Event(myId, kind, peerId, nodeIdToSend, type, trueSeq, msgId, localSeq++);
     }
@@ -85,8 +81,6 @@ public class Node implements Runnable {
                         long seq = SEQ.getAndIncrement();
                         log.debug("State: maxId {} -> {}, seq = {}", maxId, nodeId, seq);
                         maxId = nodeId;
-                        // Evento de estado: nodeIdToSend = novo maxId; peerId e msgId = os da
-                        // mensagem recebida que o causou (como no DISCARD).
                         reporter.report(ev(Kind.MAX_ID_UPDATE, message.getFromId(), nodeId,
                                 message.getMsgType(), seq, message.getMsgId()));
                         sendMessage(nodeId, Type.ELECTION);

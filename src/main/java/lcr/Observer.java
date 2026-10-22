@@ -51,7 +51,6 @@ public final class Observer {
         );
     }
 
-    // Colunas: pos,kind,node,peer,msgId,nodeIdToSend,type,trueSeq,localSeq
     public void writeCsv(Path path, List<Event> events) throws IOException {
         try (BufferedWriter w = Files.newBufferedWriter(path)) {
             w.write("pos,kind,node,peer,msgId,nodeIdToSend,type,trueSeq,localSeq\n");

@@ -14,70 +14,73 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class LegalizerFirstAkg {
+public class LegalizerFirstAlg {
+
+    private static final class Builder {
+        final Map<Integer, Key> sendOf = new HashMap<>();
+        final Map<Integer, Long> innerN = new HashMap<>(); // cada nó tem o seu innerN
+        final List<Event> pi = new ArrayList<>();
+        final Set<Key> innerPi = new HashSet<>();
+        final Set<Event> p = new LinkedHashSet<>();
+
+        Builder(List<Event> events) {
+            for (Event e : events) {
+                if (e.kind == Kind.SEND) {
+                    sendOf.put(e.msgId, e.key());
+                }
+            }
+        }
+
+        boolean isNextOfItsNode(Event e) {
+            return e.localSeq == innerN.getOrDefault(e.node, 0L);
+        }
+
+        boolean canAppend(Event e) {
+            if (!isNextOfItsNode(e)) return false;
+            return e.kind != Kind.RECV || innerPi.contains(sendOf.get(e.msgId));
+        }
+
+        void append(Event e) {
+            pi.add(e);
+            innerPi.add(e.key());
+            innerN.put(e.node, e.localSeq + 1);
+        }
+
+        /**
+         * while there is an event in rho that can be appended: append it and remove it from rho.
+         */
+        void release() {
+            while (true) {
+                Event found = null;
+                for (Event e : p) {
+                    if (canAppend(e)) {
+                        found = e;
+                        break;
+                    }
+                }
+                if (found == null) return;
+                p.remove(found);
+                append(found);
+            }
+        }
+    }
 
     private static List<Event> legalize(List<Event> events) {
-        final Map<Integer, Key> sendOf = new HashMap<>();
-
-        Map<Integer, Long> innerN = new HashMap<>(); // cada nó tem o seu innerN
-        List<Event> pi = new ArrayList<>();
-        Set<Key> innerPi = new HashSet<>();
-
-        Set<Event> p = new LinkedHashSet<>();
+        Builder builder = new Builder(events);
 
         for (Event e : events) {
-            if (e.kind == Kind.SEND) {
-                sendOf.put(e.msgId, e.key());
-            }
+            builder.release();
+
+            if (e.kind == Kind.RECV) {
+                builder.p.add(e);
+            } else if (builder.isNextOfItsNode(e)) {
+                builder.append(e);
+            } else builder.p.add(e);
         }
+        builder.release();
 
-        for (Event e : events) {
-            while (true) {
-                Event env = null;
-                for (Event event : p) {
-                    if (canAppend(event, innerN, innerPi, sendOf)) {
-                        env = event;
-                        break;
-                    }
-                }
-                if (env == null) break;
-                p.remove(env);
-                pi.add(env);
-                innerPi.add(env.key());
-                innerN.put(env.node, env.localSeq + 1);
-            }
-
-            if (e.kind == Kind.RECV) p.add(e);
-            else if (e.localSeq == innerN.getOrDefault(e.node, 0L)) {
-                pi.add(e);
-                innerPi.add(e.key());
-                innerN.put(e.node, e.localSeq + 1);
-            } else p.add(e); // DISCARD, etc, etc
-
-            while (true) {
-                Event env = null;
-                for (Event event : p) {
-                    if (canAppend(event, innerN, innerPi, sendOf)) {
-                        env = event;
-                        break;
-                    }
-                }
-                if (env == null) break;
-                p.remove(env);
-                pi.add(env);
-                innerPi.add(env.key());
-                innerN.put(env.node, env.localSeq + 1);
-            }
-        }
-        return pi;
+        return builder.pi;
     }
-
-    private static boolean canAppend(Event e, Map<Integer, Long> innerN, Set<Key> innerPi, Map<Integer, Key> sendOf) {
-        if (e.localSeq != innerN.getOrDefault(e.node, 0L))
-            return false;
-        return e.kind != Kind.RECV || innerPi.contains(sendOf.get(e.msgId));
-    }
-
 
     private static Csv load(Path path) throws IOException {
         List<String> lines = Files.readAllLines(path);
@@ -89,7 +92,7 @@ public class LegalizerFirstAkg {
         for (int i = 0; i < csv.columns.length; i++)
             csv.col.put(csv.columns[i], i);
 
-        for (String name : new String[] {"kind", "node", "msgId", "localSeq"}) {
+        for (String name : new String[]{"kind", "node", "msgId", "localSeq"}) {
             if (!csv.col.containsKey(name)) {
                 throw new IllegalArgumentException("missing column '" + name + "' in the CSV header");
             }

@@ -21,9 +21,6 @@ public class ReporterSend implements Reporter {
 
     @Override
     public void report(Event event) {
-        // O primeiro SEND observado é reportado de imediato e só uma vez.
-        // (Antes, o claimFirst() também era chamado em drawDelay(), o que fazia
-        // com que o primeiro SEND fosse inserido duas vezes no trace.)
         if (event.getKind() == Kind.SEND && observer.claimFirst()) {
             observer.putFirst(event);
             return;
