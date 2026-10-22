@@ -1,17 +1,42 @@
-## How to run:
+## How to run
 
-### 1. Generate the traces
-
-After running the program, each node will write its own local trace to `logs/node-<uid>.log`.
-
-### 2. Build the global trace
-Run the following command to generate the trace:
+### 1. Run the simulation
 
 ```bash
-python trace_tool.py logs --out trace_baseline
+java lcr.Main [seed] [maxDelayMs] [nNodes] [order] [outDir]
 ```
 
+| Argument     | Default         | Description                                                        |
+|--------------|-----------------|--------------------------------------------------------------------|
+| `seed`       | `System.nanoTime()` | Seed for the UID shuffle (`random` order) and per-node delays  |
+| `maxDelayMs` | `50`            | Maximum random delay applied to each message sent                  |
+| `nNodes`     | `9`             | Number of nodes in the ring (UIDs are `1..nNodes`)                 |
+| `order`      | `random`        | UID placement around the ring: `asc`, `desc` or `random`           |
+| `outDir`     | `runs`          | Output directory (created if it does not exist)                    |
 
-This command will print the count of `ELECTION` and `ELECTED`, discards, the safety and agreement of the trace and print if the trace was some `send` withou `recv` (or vice-versa). 
+Example:
 
-Will also generate into `trace_baseline/` the merge of all node logs into one global trace, ordered by Lamport clock (`merged.txt`) and a space-time diagram of the execution (`trace.html`).
+```bash
+java lcr.Main 42 100 9 random runs
+```
+
+Add `-Dverbose=true` to also print the observed trace and the ground-truth trace to stdout:
+
+```bash
+java -Dverbose=true lcr.Main 42 100 9 random runs
+```
+
+### 2. Output
+
+Each run writes two CSV files to `outDir`, named after the run parameters
+(`<tag>` = `n<nNodes>-d<maxDelayMs>-<order>-s<seed>`):
+
+- `observed-<tag>.csv`: the trace as recorded by the observer.
+- `truth-<tag>.csv`: the same events sorted by their true sequence number (`trueSeq`), i.e. the real order in which they happened.
+
+Using the same `seed` and parameters reproduces the same ring layout and delay pattern (hopefully).
+
+### 3. Exit codes
+
+- `0`: the run finished and both CSVs were written.
+- `3`: the scheduler did not terminate within 30 s, so the observer trace may be incomplete (a warning is printed to stderr and no CSV is written).
